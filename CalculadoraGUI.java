@@ -1,39 +1,40 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 
-/**
- * Clase principal para la interfaz gráfica de la calculadora.
- * Proporciona la lógica de la interfaz para realizar operaciones básicas
- * de suma, resta, multiplicación y división.
- * Extiende JFrame para crear la ventana principal de la aplicación.
- */
-public class CalculadoraGUI extends JFrame implements ActionListener {
+public class CalculadoraGUI extends JFrame implements ActionListener, KeyListener, WindowListener {
     private Calculadora calculadora;
-
     private JTextField pantallaEntrada;
     private JLabel pantallaResultado;
-
     private StringBuilder entrada;
+    private String modoEntrada;
+    private JPanel panelModoEntrada;
 
-    /**
-     * Constructor de la clase CalculadoraGUI.
-     * Inicializa la interfaz de usuario y los componentes de la calculadora.
-     */
     public CalculadoraGUI() {
         calculadora = new Calculadora();
         entrada = new StringBuilder();
-        
-        setTitle("Calculadora Rober");  
-        setSize(400, 600);  
-        setLocationRelativeTo(null);  
+        modoEntrada = "Libre";
+
+        setTitle("Calculadora Rober");
+        setSize(400, 600);
+        setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
+
+        panelModoEntrada = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.drawString("Modo Actual: " + modoEntrada, 10, 20);
+            }
+        };
+        panelModoEntrada.setPreferredSize(new Dimension(400, 40));
+        add(panelModoEntrada, BorderLayout.NORTH);
 
         pantallaEntrada = new JTextField();
         pantallaEntrada.setEditable(false);
         pantallaEntrada.setHorizontalAlignment(JTextField.RIGHT);
+
         pantallaResultado = new JLabel("0", SwingConstants.RIGHT);
 
         JPanel panelPantalla = new JPanel(new GridLayout(2, 1));
@@ -57,33 +58,33 @@ public class CalculadoraGUI extends JFrame implements ActionListener {
         JPanel panelBotonLimpieza = new JPanel(new FlowLayout());
         agregarBoton(panelBotonLimpieza, "C");
 
-        add(panelPantalla, BorderLayout.NORTH);
-        add(panelNumeros, BorderLayout.CENTER);
+        add(panelPantalla, BorderLayout.CENTER);
+        add(panelNumeros, BorderLayout.WEST);
         add(panelOperaciones, BorderLayout.EAST);
         add(panelBotonLimpieza, BorderLayout.SOUTH);
+
+        addKeyListener(this);
+        addWindowListener(this);
+        setFocusable(true);
     }
 
-    /**
-     * Método para agregar un botón al panel especificado.
-     * 
-     * @param panel El panel al que se agregará el botón.
-     * @param nombre El nombre que se mostrará en el botón.
-     */
     private void agregarBoton(JPanel panel, String nombre) {
         JButton boton = new JButton(nombre);
         boton.addActionListener(this);
         panel.add(boton);
     }
 
-    /**
-     * Maneja los eventos de acción de los botones.
-     * 
-     * @param e El evento de acción generado por los botones.
-     */
     @Override
     public void actionPerformed(ActionEvent e) {
-        String input = e.getActionCommand();
+        if (!modoEntrada.equals("Ratón") && !modoEntrada.equals("Libre")) {
+            return;
+        }
 
+        String input = e.getActionCommand();
+        procesarEntrada(input);
+    }
+
+    private void procesarEntrada(String input) {
         switch (input) {
             case "+":
             case "-":
@@ -91,7 +92,7 @@ public class CalculadoraGUI extends JFrame implements ActionListener {
             case "/":
                 calculadora.setOperando1(Double.parseDouble(pantallaResultado.getText()));
                 calculadora.setOperacion(input);
-                entrada.setLength(0);  
+                entrada.setLength(0);
                 break;
             case "=":
                 calculadora.setOperando2(Double.parseDouble(pantallaResultado.getText()));
@@ -101,7 +102,7 @@ public class CalculadoraGUI extends JFrame implements ActionListener {
                 } catch (ArithmeticException ex) {
                     pantallaResultado.setText("Error");
                 }
-                entrada.setLength(0);  
+                entrada.setLength(0);
                 break;
             case "C":
                 pantallaResultado.setText("0");
@@ -113,22 +114,104 @@ public class CalculadoraGUI extends JFrame implements ActionListener {
                     pantallaResultado.setText(entrada.toString());
                 }
                 break;
-            default:  
+            default:
                 entrada.append(input);
                 pantallaResultado.setText(entrada.toString());
                 break;
         }
     }
 
-    /**
-     * Método principal para iniciar la aplicación de la calculadora.
-     * 
-     * @param args Argumentos de línea de comandos.
-     */
+    @Override
+    public void keyTyped(KeyEvent e) {
+        
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        int keyCode = e.getKeyCode();
+
+        switch (keyCode) {
+            case KeyEvent.VK_NUMPAD0:
+            case KeyEvent.VK_NUMPAD1:
+            case KeyEvent.VK_NUMPAD2:
+            case KeyEvent.VK_NUMPAD3:
+            case KeyEvent.VK_NUMPAD4:
+            case KeyEvent.VK_NUMPAD5:
+            case KeyEvent.VK_NUMPAD6:
+            case KeyEvent.VK_NUMPAD7:
+            case KeyEvent.VK_NUMPAD8:
+            case KeyEvent.VK_NUMPAD9:
+                procesarEntrada(String.valueOf(keyCode - KeyEvent.VK_NUMPAD0));
+                break;
+            case KeyEvent.VK_DECIMAL:
+                procesarEntrada(".");
+                break;
+            case KeyEvent.VK_ADD:
+                procesarEntrada("+");
+                break;
+            case KeyEvent.VK_SUBTRACT:
+                procesarEntrada("-");
+                break;
+            case KeyEvent.VK_MULTIPLY:
+                procesarEntrada("*");
+                break;
+            case KeyEvent.VK_DIVIDE:
+                procesarEntrada("/");
+                break;
+            case KeyEvent.VK_ENTER:
+                procesarEntrada("=");
+                break;
+            case KeyEvent.VK_BACK_SPACE:
+                procesarEntrada("C");
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+    }
+
+    @Override
+    public void windowIconified(WindowEvent e) {
+        pantallaResultado.setText("0");
+        entrada.setLength(0);
+    }
+
+    @Override
+    public void windowOpened(WindowEvent e) {
+    }
+
+    @Override
+    public void windowClosing(WindowEvent e) {
+    }
+
+    @Override
+    public void windowClosed(WindowEvent e) {
+    }
+
+    @Override
+    public void windowDeiconified(WindowEvent e) {
+    }
+
+    @Override
+    public void windowActivated(WindowEvent e) {
+    }
+
+    @Override
+    public void windowDeactivated(WindowEvent e) {
+    }
+
+    public void setModoEntrada(String modo) {
+        this.modoEntrada = modo;
+        panelModoEntrada.repaint();
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             CalculadoraGUI calculadoraGUI = new CalculadoraGUI();
             calculadoraGUI.setVisible(true);
+            calculadoraGUI.setModoEntrada("Libre");
         });
     }
 }
